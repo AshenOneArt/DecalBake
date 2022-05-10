@@ -1,0 +1,45 @@
+        struct appdata
+        {
+            float4 vertex : POSITION;
+            float2 uv : TEXCOORD1;                
+        };
+
+        struct v2f
+        {               
+            float4 vertex : SV_POSITION;       
+            float3 pos : TEXCOORD1;                             
+        };
+
+        sampler2D _MainTex;
+        uniform float4x4 WorldToBoxArray[128];
+        uniform float4 Boxinfo[128];
+        uniform int DecalCount;
+        
+        v2f Vert (appdata v)
+        {
+            v2f o;
+            o.vertex = mul(UNITY_MATRIX_M,v.vertex);
+            o.vertex = mul(UNITY_MATRIX_VP,o.vertex);
+            o.pos = mul(UNITY_MATRIX_M,v.vertex);       
+            o.pos = GetAbsolutePositionWS(o.pos); 
+            return o;
+        }
+
+        void Frag(v2f i,out float4 outColor : SV_Target)                                               
+        {
+            float4 col;
+
+            float4x4 ProjectionMatrixArray = float4x4
+            (
+                2/Boxinfo[0].x, 0, 0, 0,
+                0, 2/Boxinfo[0].y, 0, 0,
+                0, 0,-2/Boxinfo[0].z, 1,
+                0, 0, 0, 1
+            );
+            float4x4 DecalVP = mul(ProjectionMatrixArray,WorldToBoxArray[0]);
+            float4 cameraClip = mul(DecalVP,float4(i.pos,1));
+            float depth = cameraClip.z;
+            float2 uv = cameraClip.xy*0.5+0.5;
+            col = tex2D(_MainTex,uv);    
+            outColor = col;
+        }  
